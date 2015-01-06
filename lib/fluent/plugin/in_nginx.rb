@@ -57,6 +57,8 @@ class NginxTimer < Fluent::Input
 
     #Interval for the timer object, defaults 1s
     @interval = conf['interval'] || 1
+    
+    @server_name = Socket.gethostname
   end
 
   # This method is called when starting.
@@ -119,6 +121,7 @@ class NginxTimer < Fluent::Input
         "reading"  => m.captures[4],
         "writing"  => m.captures[5],
         "waiting"  => m.captures[6],
+        "server"   => @server_name
       }
 
       # Push to the FluentD Output handlers
