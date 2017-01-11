@@ -114,6 +114,7 @@ module Fluent::Plugin
           "reading"  => m.captures[4],
           "writing"  => m.captures[5],
           "waiting"  => m.captures[6],
+          "tag"      => @tag,
           "server"   => @server_name
         }
 
