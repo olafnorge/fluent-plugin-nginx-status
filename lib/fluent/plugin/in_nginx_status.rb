@@ -1,20 +1,12 @@
-#
-# Fluent
-# 
-# 
-#
-#
-#
-#
-module Fluent
-  class NginxTimer < Input
+require 'fluent/input'
+require 'net/http'
+require 'uri'
+
+module Fluent::Plugin
+  class NginxTimer < Fluent::Plugin::Input
     # First, register the plugin. NAME is the name of this plugin
     # and identifies the plugin in the configuration file.
     Fluent::Plugin.register_input('nginx_status', self)
-
-    # Load Modules
-    require 'net/http'
-    require 'uri'
 
     class TimerWatcher < Coolio::TimerWatcher
       def initialize(interval, repeat, log, &callback)
@@ -53,13 +45,13 @@ module Fluent
       # Nginx host
       @scheme = if @port == 443 then "https" else "http" end
 
-      # Nginz status page path
+      # Nginx status page path
       @path = conf['path'] || '/nginx_status'
 
       #Interval for the timer object, defaults 1s
       @interval = conf['interval'] || 1
       
-      @server_name = Socket.gethostname
+      @server_name = conf['server_name'] || Socket.gethostname
     end
 
     # This method is called when starting.
