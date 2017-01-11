@@ -118,7 +118,7 @@ module Fluent::Plugin
         }
 
         # Push to the FluentD Output handlers
-        Fluent::Engine.emit(@tag, Time.now.to_i, record)
+        router.emit(@tag, Time.now.to_i, record)
       end
 
       # $log.info response.body
