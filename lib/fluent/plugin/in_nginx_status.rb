@@ -50,8 +50,12 @@ module Fluent::Plugin
 
       #Interval for the timer object, defaults 1s
       @interval = conf['interval'] || 1
-      
+
+      # take server name from config or get it from host directly if not set
       @server_name = conf['server_name'] || Socket.gethostname
+
+      # send multiple lines for each metric or as a single event (default is single event)
+      @multi_events = conf['multi_events'] || false
     end
 
     # This method is called when starting.
@@ -105,21 +109,40 @@ module Fluent::Plugin
         return
       end
 
-      if m = response.body.to_s.match(/^[a-zA-Z\s]+\:\s([0-9]+?)\s\n[a-z\s]+([0-9]+)\s([0-9]+)\s([0-9]+)\s\n[a-zA-Z\:?]+\s([0-9]+)\s[a-zA-Z\:?]+\s([0-9]+)\s[a-zA-Z\:?]+\s([0-9]+)/)
-        record = {
-          "active"   => m.captures[0],
-          "accepted" => m.captures[1],
-          "handled"  => m.captures[2],
-          "total"    => m.captures[3],
-          "reading"  => m.captures[4],
-          "writing"  => m.captures[5],
-          "waiting"  => m.captures[6],
-          "tag"      => @tag,
-          "server"   => @server_name
-        }
+      if m = response.body.to_s.match(/^[a-zA-Z\s]+\:\s([0-9]+?)\s\n[a-z\s]+([0-9]+)\s([0-9]+)\s([0-9]+)\s\n[a-zA-Z\:?]+\s([0-9]+)\s[a-zA-Z\:?]+\s([0-9]+)\s[a-zA-Z\:?]+\s([0-9]+)/)es = MultiEventStream.new
+        if @multi_events == true
+            records = [
+              {"active" => m.captures[0], "tag" => @tag, "server" => @server_name},
+              {"accepted" => m.captures[1], "tag" => @tag, "server" => @server_name},
+              {"handled" => m.captures[2], "tag" => @tag, "server" => @server_name},
+              {"total" => m.captures[3], "tag" => @tag, "server" => @server_name},
+              {"reading" => m.captures[4], "tag" => @tag, "server" => @server_name},
+              {"writing" => m.captures[5], "tag" => @tag, "server" => @server_name},
+              {"waiting" => m.captures[6], "tag" => @tag, "server" => @server_name}
+            ]
 
-        # Push to the FluentD Output handlers
-        router.emit(@tag, Time.now.to_i, record)
+          es = MultiEventStream.new
+          records.each { |record|
+            es.add(Time.now.to_i, record)
+          }
+
+          router.emit_stream(@tag, es)
+        else
+        end
+          record = {
+            "active"   => m.captures[0],
+            "accepted" => m.captures[1],
+            "handled"  => m.captures[2],
+            "total"    => m.captures[3],
+            "reading"  => m.captures[4],
+            "writing"  => m.captures[5],
+            "waiting"  => m.captures[6],
+            "tag"      => @tag,
+            "server"   => @server_name
+          }
+
+          # Push to the FluentD Output handlers
+          router.emit(@tag, Time.now.to_i, record)
       end
 
       # $log.info response.body
